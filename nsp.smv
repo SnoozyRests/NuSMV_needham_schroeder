@@ -1,0 +1,51 @@
+MODULE MachineA (sAuth)
+	VAR
+		status : {idle, requesting, messaging};
+		auth : boolean;
+		nonce : boolean;
+	ASSIGN
+		next(auth) :=
+			case
+				sAuth = TRUE : TRUE;
+				sAuth = FALSE : FALSE;
+				TRUE : auth;
+			esac;
+		
+		next(nonce) :=
+			case
+				auth = FALSE : TRUE;
+				auth = TRUE : TRUE;
+			esac;
+			
+		next(status) :=
+			case
+				nonce = TRUE : requesting;
+				nonce & auth = TRUE : messaging;
+				nonce & auth = FALSE : idle;
+				TRUE : status;
+			esac;
+				
+--MODULE MachineB
+
+
+MODULE Server(aStatus, aNonce)
+	VAR
+		aAuth : boolean;
+	ASSIGN
+		next(aAuth) :=
+			case
+				aStatus = requesting & aNonce = TRUE : TRUE;
+				aStatus = idle & aNonce = FALSE : FALSE;
+				aStatus = messaging : TRUE;
+				TRUE : aAuth;
+			esac;
+
+--MODULE Intruder
+
+
+
+
+MODULE main
+VAR
+  mchA : MachineA(serv.aAuth);
+  serv : Server(mchA.status, mchA.nonce);
