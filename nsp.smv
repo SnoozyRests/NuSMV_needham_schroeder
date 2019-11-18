@@ -1,64 +1,25 @@
-MODULE MachineA(aAuth, bAuth)
+MODULE MachineA()
 	VAR
+		status : {idle, authing, messaging};
 		nonce : boolean;
-		authenticated : boolean;
-		messaging : boolean;
+		authd : boolean;
 	ASSIGN
-		init(nonce) := FALSE;
-		init(authenticated) := FALSE;
-		init(messaging) := FALSE;
-		
-		next(nonce) :=
+		init(status) := idle;
+		init(nonce) := false;
+		init(authd) := false;
+		next(status) :=
 			case
-				nonce = FALSE : TRUE;
-				TRUE : TRUE;
-			esac;
-		
-		next(authenticated) :=
-			case
-				aAuth = TRUE : TRUE;
-				aAuth = FALSE : FALSE;
-			esac;
+				nonce = false : idle;
+				nonce = true : authing;
+				esac; 
+--MODULE MachineB(Aout)
+
 			
-		next(messaging) :=
-			case
-				bAuth = TRUE : TRUE;
-				bAuth = FALSE : FALSE;
-			esac;
-			
-MODULE MachineB(auth, messaging)
-	VAR
-		bAuth : boolean;
-		recieving : boolean;
-	ASSIGN
-		init(bAuth) := FALSE;
-		next(bAuth) :=
-			case
-				bAuth = TRUE : TRUE;
-				bAuth = FALSE : FALSE;
-			esac;
-		
-		next(recieving) :=
-			case
-				bAuth & messaging = TRUE : TRUE;
-				bAuth | messaging = FALSE : FALSE;
-			esac;
-			
-MODULE Server(nonce)
-	VAR
-		aAuth : boolean;
-	ASSIGN
-		init(aAuth) := FALSE;
-		next(aAuth) :=
-			case
-				nonce = TRUE : TRUE;
-				nonce = FALSE : FALSE;
-			esac;
+--MODULE Server(servIn)
+
 		
 --MODULE Intruder
 
 MODULE main
 	VAR
-		mchA : MachineA(serv.aAuth, mchB.bAuth);
-		serv : Server(mchA.nonce);
-		mchB : MachineB(mchA.authenticated, mchA.messaging);
+		mchA : MachineA();

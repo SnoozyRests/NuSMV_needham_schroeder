@@ -1,0 +1,59 @@
+MODULE MachineA(aAuth, bAuth)
+	VAR
+		nonceGen : boolean;
+		nonceVal : {nop, Na, Kb};
+		authenticated : boolean;
+	ASSIGN
+		init(nonceGen) := FALSE;
+		init(nonceVal) := {nop};
+		init(authenticated) := FALSE;
+		
+		next(nonceGen) :=
+			case
+				nonceGen = FALSE : TRUE;
+				TRUE : TRUE;
+			esac;
+		
+		next(nonceVal) :=
+			case
+				nonceGen = TRUE & authenticated = FALSE : {Na};
+				nonceGen & authenticated = TRUE : {Kb};
+				nonceGen = FALSE : {nop};
+			esac;
+			
+		next(authenticated) :=
+			case
+				aAuth = TRUE : TRUE;
+				aAuth = FALSE : FALSE;
+			esac;
+			
+MODULE MachineB(aNonceVal)
+	VAR
+		bAuth : boolean;
+	ASSIGN
+		init(bAuth) := FALSE;
+		next(bAuth) :=
+			case
+				aNonceVal = Kb : TRUE;
+				aNonceVal = Na : FALSE;
+				aNonceVal = nop : FALSE;
+			esac;
+			
+MODULE Server(aNonceVal)
+	VAR
+		servNonce : {nop, Ka};
+	ASSIGN
+		init(servNonce) := nop;
+		next(servNonce) :=
+			case
+				aNonceVal = nop : nop;
+				TRUE : TRUE;
+			esac;
+		
+--MODULE Intruder
+
+MODULE main
+	VAR
+		mchA : MachineA(serv.servNonce, mchB.bAuth);
+		serv : Server(mchA.nonceVal);
+		mchB : MachineB(mchA.nonceVal);
