@@ -1,59 +1,132 @@
-MODULE MachineA(aAuth, bAuth)
+MODULE MachineA(sKey, bAuth, bKey, aConnection, iDelay)
 	VAR
+		--state : {idle, authing, messaging};
 		nonceGen : boolean;
-		nonceVal : {nop, Na, Kb};
+		aKey : {nop, a, b, ab};
 		authenticated : boolean;
+		bConnection : boolean;
 	ASSIGN
 		init(nonceGen) := FALSE;
-		init(nonceVal) := {nop};
+		init(aKey) := nop;
 		init(authenticated) := FALSE;
+		--init(state) := idle;
+		init(bConnection) := FALSE;
 		
+		--next(state) :=
+			--case
+				--state = idle : {authing, idle};
+				--state = authing : {messaging};
+				--state = messaging : {messaging, idle};
+			--esac;
+			
 		next(nonceGen) :=
 			case
 				nonceGen = FALSE : TRUE;
 				TRUE : TRUE;
 			esac;
 		
-		next(nonceVal) :=
+		next(aKey) :=
 			case
-				nonceGen = TRUE & authenticated = FALSE : {Na};
-				nonceGen & authenticated = TRUE : {Kb};
+				aKey = ab : ab;
+				authenticated = TRUE & bKey = ab & iDelay = FALSE : {ab};
+				authenticated = TRUE & bKey = ab & iDelay = TRUE : {b};
+				nonceGen = TRUE & authenticated = FALSE : {a};
+				nonceGen & authenticated = TRUE : {b};
 				nonceGen = FALSE : {nop};
 			esac;
 			
 		next(authenticated) :=
 			case
-				aAuth = TRUE : TRUE;
-				aAuth = FALSE : FALSE;
-			esac;
-			
-MODULE MachineB(aNonceVal)
-	VAR
-		bAuth : boolean;
-	ASSIGN
-		init(bAuth) := FALSE;
-		next(bAuth) :=
-			case
-				aNonceVal = Kb : TRUE;
-				aNonceVal = Na : FALSE;
-				aNonceVal = nop : FALSE;
-			esac;
-			
-MODULE Server(aNonceVal)
-	VAR
-		servNonce : {nop, Ka};
-	ASSIGN
-		init(servNonce) := nop;
-		next(servNonce) :=
-			case
-				aNonceVal = nop : nop;
-				TRUE : TRUE;
+				aKey = ab : TRUE;
+				aKey = b : TRUE;
+				sKey = a & iDelay = FALSE : TRUE;
+				sKey = a & iDelay = TRUE : FALSE;
+				sKey = nop & iDelay = FALSE : FALSE;
+				sKey = nop & iDelay = TRUE : FALSE;
 			esac;
 		
---MODULE Intruder
+		next(bConnection) :=
+			case
+				bConnection = TRUE : TRUE;
+				aConnection = TRUE & iDelay = FALSE : TRUE;
+				aConnection = TRUE & iDelay = TRUE : FALSE;
+				aConnection = FALSE : FALSE;
+			esac;
+			
+MODULE MachineB(aKey, iDelay)
+	VAR
+		--state : {idle, authing, messaging};
+		bAuth : boolean;
+		bKey : {b, ab};
+		aConnection : boolean;
+	ASSIGN
+		init(bAuth) := FALSE;
+		--init(state) := idle;
+		init(bKey) := b;
+		init(aConnection) := FALSE;
+		
+		next(bAuth) :=
+			case
+				aKey = ab : TRUE;
+				bKey = ab : TRUE;
+				aKey = b & iDelay = FALSE : TRUE;
+				aKey = b & iDelay = TRUE : FALSE;
+				aKey = a : FALSE;
+				aKey = nop : FALSE;
+			esac;
+			
+		next(bKey) :=
+			case
+				bAuth = TRUE : ab;
+				bAuth = FALSE : b;
+			esac;
+			
+		next(aConnection) :=
+			case
+				aConnection = TRUE : TRUE;
+				aKey = ab & iDelay = FALSE : TRUE;
+				aKey = ab & iDelay = TRUE : FALSE;
+				aKey = b : FALSE;
+				aKey = a : FALSE;
+				aKey = nop : FALSE;
+			esac;
+			
+MODULE Server(aKey, iDelay)
+	VAR
+		state : {idle, authing};
+		sKey : {nop, a};
+	ASSIGN
+		init(sKey) := nop;
+		init(state) := idle;
+		
+		next(state) :=
+			case
+				aKey = nop : idle;
+				aKey = a & iDelay = FALSE : authing;
+				aKey = a & iDelay = TRUE : idle;
+				aKey = b : idle;
+				aKey = ab : idle;
+			esac;
+		next(sKey) :=
+			case
+				aKey = nop : nop;
+				aKey = a & iDelay = FALSE : a;
+				aKey = a & iDelay = TRUE : nop;
+				aKey = b : a;
+				aKey = ab : a;
+			esac;
+		
+MODULE Intruder
+	VAR
+		delay : boolean;
+	ASSIGN
+		init(delay) :=  {FALSE, TRUE};
+		
+		next(delay) := {FALSE, TRUE};
 
 MODULE main
 	VAR
-		mchA : MachineA(serv.servNonce, mchB.bAuth);
-		serv : Server(mchA.nonceVal);
-		mchB : MachineB(mchA.nonceVal);
+		mchA : MachineA(serv.sKey, mchB.bAuth, mchB.bKey, mchB.aConnection, int.delay);
+		serv : Server(mchA.aKey, int.delay);
+		mchB : MachineB(mchA.aKey, int.delay);
+		int : Intruder();
