@@ -53,17 +53,21 @@ MODULE MachineA(sKey, bAuth, bKey, aConnection, iDelay)
 				aConnection = FALSE : FALSE;
 			esac;
 			
-MODULE MachineB(aKey, iDelay)
+MODULE MachineB(aKey, iDelay, iKey)
 	VAR
 		--state : {idle, authing, messaging};
 		bAuth : boolean;
 		bKey : {nop, b, ab};
 		aConnection : boolean;
+		iAuth : boolean;
+		iConnection : boolean;
 	ASSIGN
 		init(bAuth) := FALSE;
 		--init(state) := idle;
 		init(bKey) := nop;
 		init(aConnection) := FALSE;
+		init(iAuth) := FALSE;
+		init(iConnection) := FALSE;
 		
 		next(bAuth) :=
 			case
@@ -92,6 +96,24 @@ MODULE MachineB(aKey, iDelay)
 				aKey = nop : FALSE;
 			esac;
 			
+		next(iAuth) :=
+			case
+				iKey = ab : TRUE;
+				iKey = b : TRUE;
+				iKey = a : FALSE;
+				iKey = nop : FALSE;
+			esac;
+		
+		next(iConnection) :=
+			case
+				iConnection = TRUE : TRUE;
+				iKey = ab : TRUE;
+				iKey = b : FALSE;
+				iKey = a : FALSE;
+				iKey = nop : FALSE;
+				iAuth = FALSE : FALSE;
+			esac;
+			
 MODULE Server(aKey, iDelay)
 	VAR
 		state : {idle, authing};
@@ -117,18 +139,26 @@ MODULE Server(aKey, iDelay)
 				aKey = ab : a;
 			esac;
 		
-MODULE Intruder(aKey, bKey, sKey)
+MODULE Intruder(aKey, bKey, sKey, bAuth, bConn)
 	VAR
 		delay : boolean;
 		capture : boolean;
 		capturedKey : {nop, a, b, ab};
+		replay : boolean;
+		iKey : {nop, a, b, ab};
+		bConnection  : boolean;
 	ASSIGN
 		init(delay) :=  {FALSE, TRUE};
 		init(capture) := {FALSE, TRUE};
+		init(replay) := {FALSE, TRUE};
 		init(capturedKey) := nop;
+		init(iKey) := nop;
+		init(bConnection) := FALSE;
 		
 		next(delay) := {FALSE, TRUE};
 		next(capture) := {FALSE, TRUE};
+		next(replay) := {FALSE, TRUE};
+		
 		next(capturedKey) :=
 			case
 				capture = FALSE : capturedKey;
@@ -136,11 +166,27 @@ MODULE Intruder(aKey, bKey, sKey)
 				capture = TRUE & (aKey = b | bKey = b | sKey = b) : b;
 				capture = TRUE & (aKey = a | bKey = a | sKey = a) : a;
 				capture = TRUE & (aKey = nop | bKey = nop | sKey = nop) : a;
-				
+			esac;
+			
+		next(iKey) :=
+			case
+				bConn = TRUE : ab;
+				replay = FALSE : nop;
+				replay = TRUE & bAuth = TRUE : ab;
+				replay = TRUE & capturedKey = ab : b;
+				replay = TRUE & capturedKey = a : a;
+				replay = TRUE : capturedKey;
+				bConn = FALSE : capturedKey;
+			esac;
+		
+		next(bConnection) :=
+			case
+				bConn = TRUE : TRUE;
+				bConn = FALSE : FALSE;
 			esac;
 MODULE main
 	VAR
 		mchA : MachineA(serv.sKey, mchB.bAuth, mchB.bKey, mchB.aConnection, int.delay);
 		serv : Server(mchA.aKey, int.delay);
-		mchB : MachineB(mchA.aKey, int.delay);
-		int : Intruder(mchA.aKey, mchB.bKey, serv.sKey);
+		mchB : MachineB(mchA.aKey, int.delay, int.iKey);
+		int : Intruder(mchA.aKey, mchB.bKey, serv.sKey, mchB.iAuth, mchB.iConnection);
