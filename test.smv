@@ -57,12 +57,12 @@ MODULE MachineB(aKey, iDelay)
 	VAR
 		--state : {idle, authing, messaging};
 		bAuth : boolean;
-		bKey : {b, ab};
+		bKey : {nop, b, ab};
 		aConnection : boolean;
 	ASSIGN
 		init(bAuth) := FALSE;
 		--init(state) := idle;
-		init(bKey) := b;
+		init(bKey) := nop;
 		init(aConnection) := FALSE;
 		
 		next(bAuth) :=
@@ -78,7 +78,8 @@ MODULE MachineB(aKey, iDelay)
 		next(bKey) :=
 			case
 				bAuth = TRUE : ab;
-				bAuth = FALSE : b;
+				aKey = b : b;
+				bAuth = FALSE : nop;
 			esac;
 			
 		next(aConnection) :=
@@ -116,17 +117,30 @@ MODULE Server(aKey, iDelay)
 				aKey = ab : a;
 			esac;
 		
-MODULE Intruder
+MODULE Intruder(aKey, bKey, sKey)
 	VAR
 		delay : boolean;
+		capture : boolean;
+		capturedKey : {nop, a, b, ab};
 	ASSIGN
 		init(delay) :=  {FALSE, TRUE};
+		init(capture) := {FALSE, TRUE};
+		init(capturedKey) := nop;
 		
 		next(delay) := {FALSE, TRUE};
-
+		next(capture) := {FALSE, TRUE};
+		next(capturedKey) :=
+			case
+				capture = FALSE : capturedKey;
+				capture = TRUE & (aKey = ab | bKey = ab | sKey = ab) : ab;
+				capture = TRUE & (aKey = b | bKey = b | sKey = b) : b;
+				capture = TRUE & (aKey = a | bKey = a | sKey = a) : a;
+				capture = TRUE & (aKey = nop | bKey = nop | sKey = nop) : a;
+				
+			esac;
 MODULE main
 	VAR
 		mchA : MachineA(serv.sKey, mchB.bAuth, mchB.bKey, mchB.aConnection, int.delay);
 		serv : Server(mchA.aKey, int.delay);
 		mchB : MachineB(mchA.aKey, int.delay);
-		int : Intruder();
+		int : Intruder(mchA.aKey, mchB.bKey, serv.sKey);
