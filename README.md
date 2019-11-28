@@ -10,25 +10,25 @@ upon the seemily autonomous authentication process being carried out by the
 machines.  
 There are several states at every transition, each of these represents a
 different combination of actions for the intruder:  
-1.) Delay = TRUE  
+1. Delay = TRUE  
 	Capture = TRUE  
 	Replay = TRUE   
-2.) Delay = FALSE  
+2. Delay = FALSE  
 	Capture = TRUE  
 	Replay = TRUE  
-3.) Delay = TRUE  
+3. Delay = TRUE  
 	Capture = FALSE  
 	Replay = FALSE  
-4.) Delay = TRUE  
+4. Delay = TRUE  
 	Capture = TRUE  
 	Replay = FALSE  
-5.) Delay = FALSE  
+5. Delay = FALSE  
 	Capture = TRUE  
 	Replay = FALSE  
-6.) Delay = TRUE  
+6. Delay = TRUE  
 	Capture = FALSE  
 	Replay = FALSE  
-7.) Delay = FALSE  
+7. Delay = FALSE  
 	Capture = FALSE  
 	Replay = FALSE  
   
