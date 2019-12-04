@@ -1,6 +1,5 @@
 MODULE MachineA(sKey, bAuth, bKey, aConnection, iDelay)
 	VAR
-		--state : {idle, authing, messaging};
 		nonceGen : boolean;
 		aKey : {nop, a, b, ab};
 		authenticated : boolean;
@@ -9,15 +8,7 @@ MODULE MachineA(sKey, bAuth, bKey, aConnection, iDelay)
 		init(nonceGen) := FALSE;
 		init(aKey) := nop;
 		init(authenticated) := FALSE;
-		--init(state) := idle;
 		init(bConnection) := FALSE;
-		
-		--next(state) :=
-			--case
-				--state = idle : {authing, idle};
-				--state = authing : {messaging};
-				--state = messaging : {messaging, idle};
-			--esac;
 			
 		next(nonceGen) :=
 			case
@@ -55,7 +46,6 @@ MODULE MachineA(sKey, bAuth, bKey, aConnection, iDelay)
 			
 MODULE MachineB(aKey, iDelay, iKey)
 	VAR
-		--state : {idle, authing, messaging};
 		bAuth : boolean;
 		bKey : {nop, b, ab};
 		aConnection : boolean;
@@ -63,7 +53,6 @@ MODULE MachineB(aKey, iDelay, iKey)
 		iConnection : boolean;
 	ASSIGN
 		init(bAuth) := FALSE;
-		--init(state) := idle;
 		init(bKey) := nop;
 		init(aConnection) := FALSE;
 		init(iAuth) := FALSE;
